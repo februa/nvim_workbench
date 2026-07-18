@@ -1,0 +1,33 @@
+name: nvim-workbench
+
+services:
+  editor:
+    image: ${NVIM_IMAGE:-nvim-workbench:2026-07-stable}
+    build:
+      context: .
+    entrypoint: ["nvim"]
+    command: ["."]
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    network_mode: none
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      HOME: /home/nvim
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      NVIM_CONTAINER: "1"
+      TERM: ${TERM:-xterm-256color}
+      COLORTERM: ${COLORTERM:-truecolor}
+    volumes:
+      - type: bind
+        source: ${PROJECT_DIR:-.}
+        target: /workspace
+    tmpfs:
+      - /tmp:mode=1777
+      - /home/nvim/.cache:uid=1000,gid=1000,mode=0700
+      - /home/nvim/.local/state:uid=1000,gid=1000,mode=0700

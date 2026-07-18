@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+output="${1:-/dev/stdout}"
+plugin_root="/home/nvim/.local/share/nvim/lazy"
+
+{
+  echo "nvim-workbench frozen manifest"
+  echo
+  echo "Tools"
+  nvim --version | head -n 3
+  if command -v tree-sitter >/dev/null 2>&1; then
+    tree-sitter --version
+  else
+    echo "tree-sitter $(cat /opt/workbench/tree-sitter-version.txt) (build-only)"
+  fi
+  lua-language-server --version
+  pyright --version
+  ruff --version
+  stylua --version
+  clangd --version | head -n 1
+  node --version
+  rg --version | head -n 1
+  fd --version
+  shellcheck --version | awk '/^version:/ { print "ShellCheck " $2 }'
+  echo
+  echo "Plugins"
+  if [[ -f /opt/workbench/plugin-manifest.txt ]]; then
+    cat /opt/workbench/plugin-manifest.txt
+  else
+    for plugin in "${plugin_root}"/*; do
+      printf '%s\t%s\n' "$(basename "${plugin}")" "$(git -C "${plugin}" rev-parse HEAD)"
+    done
+  fi
+  echo
+  echo "Debian packages"
+  dpkg-query --show --showformat='${binary:Package}\t${Version}\n' | sort
+} > "${output}"

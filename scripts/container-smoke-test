@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+expected_nvim="NVIM v0.12.4"
+actual_nvim="$(nvim --version | head -n 1)"
+if [[ "${actual_nvim}" != "${expected_nvim}" ]]; then
+  echo "Expected ${expected_nvim}, got ${actual_nvim}" >&2
+  exit 1
+fi
+
+test "$(cat /opt/workbench/tree-sitter-version.txt)" = "0.26.11"
+test "$(lua-language-server --version)" = "3.18.2-dev"
+test "$(pyright --version | awk '{print $2}')" = "1.1.411"
+test "$(ruff --version | awk '{print $2}')" = "0.15.22"
+test "$(stylua --version | awk '{print $2}')" = "2.5.2"
+
+NVIM_CONTAINER=1 nvim --headless "+luafile /opt/workbench/tests/smoke.lua"

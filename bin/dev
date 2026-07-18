@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_path="${BASH_SOURCE[0]}"
+while [[ -L "${script_path}" ]]; do
+  script_dir="$(cd "$(dirname "${script_path}")" && pwd)"
+  link_target="$(readlink "${script_path}")"
+  if [[ "${link_target}" = /* ]]; then
+    script_path="${link_target}"
+  else
+    script_path="${script_dir}/${link_target}"
+  fi
+done
+workbench_dir="$(cd "$(dirname "${script_path}")/.." && pwd)"
+project_dir="${PWD}"
+force_rebuild=0
+project_arg_seen=0
+
+usage() {
+  cat <<'EOF'
+Usage: dev [--rebuild] [PROJECT_DIR]
+
+Open a project in a reusable zellij session. Git worktrees get Neovim, Codex,
+Git, and Test tabs; other directories get Neovim only.
+
+Options:
+  --rebuild  Rebuild the frozen Neovim image before starting
+  -h, --help Show this help
+
+Environment:
+  DEV_SESSION_NAME  Override the generated zellij session name
+  DEV_TEST_COMMAND  Run this command when the Test tab starts
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --rebuild)
+      force_rebuild=1
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --)
+      shift
+      if [[ $# -gt 1 ]]; then
+        echo "Only one project directory may be specified." >&2
+        exit 2
+      fi
+      if [[ $# -eq 1 ]]; then
+        project_dir="$1"
+      fi
+      break
+      ;;
+    -* )
+      echo "Unknown option: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+    *)
+      if [[ "${project_arg_seen}" -eq 1 ]]; then
+        echo "Only one project directory may be specified." >&2
+        exit 2
+      fi
+      project_dir="$1"
+      project_arg_seen=1
+      ;;
+  esac
+  shift
+done
+
+if [[ ! -d "${project_dir}" ]]; then
+  echo "Project directory does not exist: ${project_dir}" >&2
+  exit 1
+fi
+project_dir="$(cd "${project_dir}" && pwd)"
+
+for tool in docker zellij git; do
+  if ! command -v "${tool}" >/dev/null 2>&1; then
+    echo "Required command not found: ${tool}" >&2
+    exit 1
+  fi
+done
+
+if [[ -n "${ZELLIJ:-}" ]]; then
+  echo "dev must be started outside zellij. Detach first, then run it again." >&2
+  exit 1
+fi
+
+if ! docker info >/dev/null 2>&1; then
+  echo "Docker is not running. Start Docker Desktop and retry." >&2
+  exit 1
+fi
+
+set -a
+# Resolved from this script's canonical repository path.
+# shellcheck disable=SC1091
+source "${workbench_dir}/versions.env"
+set +a
+
+workspace_mode="editor"
+layout_file="${workbench_dir}/layouts/editor.kdl"
+if git -C "${project_dir}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  workspace_mode="git"
+  layout_file="${workbench_dir}/layouts/dev.kdl"
+  if ! command -v codex >/dev/null 2>&1; then
+    echo "Required command not found for a Git workspace: codex" >&2
+    exit 1
+  fi
+fi
+
+if [[ "${force_rebuild}" -eq 1 ]] || ! docker image inspect "${NVIM_IMAGE}" >/dev/null 2>&1; then
+  echo "Building ${NVIM_IMAGE}..."
+  "${workbench_dir}/scripts/build.sh"
+fi
+
+project_name="$(basename "${project_dir}")"
+project_slug="$(printf '%s' "${project_name}" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9_-' '-')"
+project_slug="${project_slug#-}"
+project_slug="${project_slug%-}"
+project_slug="${project_slug:0:8}"
+project_checksum="$(printf '%s' "${project_dir}" | cksum | awk '{print $1}')"
+project_hash="$(printf '%08x' "${project_checksum}")"
+mode_letter="${workspace_mode:0:1}"
+session_name="${DEV_SESSION_NAME:-d-${project_slug:-project}-${project_hash}-${mode_letter}}"
+
+session_state="$(zellij list-sessions --no-formatting 2>/dev/null | awk -v name="${session_name}" '$1 == name { print; exit }' || true)"
+if [[ -n "${session_state}" && "${session_state}" != *"(EXITED"* ]]; then
+  exec zellij attach "${session_name}"
+fi
+if [[ -n "${session_state}" ]]; then
+  zellij delete-session "${session_name}" --force
+fi
+
+export DEV_PROJECT_DIR="${project_dir}"
+export DEV_WORKBENCH_DIR="${workbench_dir}"
+
+exec zellij --session "${session_name}" --new-session-with-layout "${layout_file}" \
+  options --default-cwd "${project_dir}" --show-startup-tips false
