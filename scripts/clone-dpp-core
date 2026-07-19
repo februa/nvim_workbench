@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+lock_file="${1:?core.tsv path is required}"
+dpp_base="${2:?dpp base path is required}"
+
+while IFS=$'\t' read -r repo revision; do
+  [[ -n "${repo}" && -n "${revision}" ]]
+  destination="${dpp_base}/repos/github.com/${repo}"
+  git clone --filter=blob:none "https://github.com/${repo}.git" "${destination}"
+  git -C "${destination}" checkout "${revision}"
+done < "${lock_file}"

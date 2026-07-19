@@ -2,11 +2,10 @@ name: nvim-workbench
 
 services:
   editor:
-    image: ${NVIM_IMAGE:-nvim-workbench:2026-07-stable}
+    image: ${NVIM_IMAGE:-nvim-workbench:2026-07-dpp-candidate}
     build:
       context: .
     entrypoint: ["nvim"]
-    command: ["."]
     working_dir: /workspace
     stdin_open: true
     tty: true
@@ -21,13 +20,22 @@ services:
       LANG: C.UTF-8
       LC_ALL: C.UTF-8
       NVIM_CONTAINER: "1"
+      NVIM_NERD_FONT: ${NVIM_NERD_FONT:-0}
       TERM: ${TERM:-xterm-256color}
       COLORTERM: ${COLORTERM:-truecolor}
     volumes:
       - type: bind
         source: ${PROJECT_DIR:-.}
         target: /workspace
+      - type: volume
+        source: global-shada
+        target: /home/nvim/.local/state/nvim/shada
     tmpfs:
       - /tmp:mode=1777
       - /home/nvim/.cache:uid=1000,gid=1000,mode=0700
-      - /home/nvim/.local/state:uid=1000,gid=1000,mode=0700
+      - /home/nvim/.local/state/nvim:uid=1000,gid=1000,mode=0700
+      - /opt/deno-cache/import_map_importer:uid=1000,gid=1000,mode=0700
+
+volumes:
+  global-shada:
+    name: nvim-workbench-shada

@@ -34,4 +34,8 @@ for arg in "$@"; do
   container_args+=("${arg}")
 done
 
-exec "${workbench_dir}/scripts/run.sh" "${project_dir}" "${container_args[@]}"
+if (( ${#container_args[@]} == 0 )); then
+  exec "${workbench_dir}/scripts/run.sh" "${project_dir}"
+else
+  exec "${workbench_dir}/scripts/run.sh" "${project_dir}" "${container_args[@]}"
+fi

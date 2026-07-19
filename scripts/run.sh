@@ -12,10 +12,6 @@ fi
 project_dir="$(cd "${project_dir}" && pwd)"
 shift "$(( $# > 0 ? 1 : 0 ))"
 
-if [[ $# -eq 0 ]]; then
-  set -- .
-fi
-
 set -a
 # Resolved from this script's canonical repository path.
 # shellcheck disable=SC1091

@@ -2,13 +2,14 @@
 set -euo pipefail
 
 output="${1:-/dev/stdout}"
-plugin_root="/home/nvim/.local/share/nvim/lazy"
+plugin_root="/home/nvim/.local/share/nvim/dpp/repos/github.com"
 
 {
   echo "nvim-workbench frozen manifest"
   echo
   echo "Tools"
   nvim --version | head -n 3
+  deno --version | head -n 1
   if command -v tree-sitter >/dev/null 2>&1; then
     tree-sitter --version
   else
@@ -28,9 +29,11 @@ plugin_root="/home/nvim/.local/share/nvim/lazy"
   if [[ -f /opt/workbench/plugin-manifest.txt ]]; then
     cat /opt/workbench/plugin-manifest.txt
   else
-    for plugin in "${plugin_root}"/*; do
-      printf '%s\t%s\n' "$(basename "${plugin}")" "$(git -C "${plugin}" rev-parse HEAD)"
-    done
+    find "${plugin_root}" -mindepth 2 -maxdepth 2 -type d -print0 \
+      | while IFS= read -r -d '' plugin; do
+          printf '%s\t%s\n' "${plugin#${plugin_root}/}" "$(git -C "${plugin}" rev-parse HEAD)"
+        done \
+      | sort
   fi
   echo
   echo "Debian packages"

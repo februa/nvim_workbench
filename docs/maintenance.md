@@ -3,8 +3,8 @@
 Never rebuild the stable tag in place as the first update step.
 
 1. Change versions and checksums in `Dockerfile` and `versions.env`.
-2. Update plugins in a temporary candidate branch or container and commit the resulting
-   `lazy-lock.json`.
+2. Update exact plugin revisions in `config/nvim/dpp/core.tsv` or the `rev` fields in
+   `config/nvim/dpp/plugins.toml` on a temporary candidate branch.
 3. Change `NVIM_IMAGE` to a dated candidate tag.
 4. Run `./scripts/build.sh` and `./scripts/smoke-test.sh`.
 5. Open the fixture files and one real project through `./scripts/run.sh`.
@@ -18,5 +18,5 @@ mutate editor dependencies at runtime.
 For disaster recovery, retain all three:
 
 - this Git repository (recipe and configuration),
-- `lazy-lock.json` (plugin revisions),
+- `config/nvim/dpp/core.tsv` and `config/nvim/dpp/plugins.toml` (plugin revisions),
 - the exported `.tar.gz`, checksum, and metadata (known-working result).

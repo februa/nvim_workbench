@@ -11,6 +11,8 @@ macOS / SSH client
           ▼
 read-only Neovim container, network disabled
 ├── Neovim and Lua configuration
+├── Deno + pre-warmed module cache
+├── generated dpp state
 ├── pinned plugin checkouts
 ├── compiled Tree-sitter parsers
 ├── LSP servers and formatters
@@ -32,18 +34,31 @@ collide.
 
 ## Frozen boundary
 
-The image contains the Neovim binary, configuration, plugin working trees, parsers,
-language servers, formatters, and search tools. Configuration and plugin directories
-are made non-writable during the build. Runtime networking is disabled, and the root
-filesystem is read-only.
+The image contains the Neovim binary, Deno, configuration, generated dpp state, plugin
+working trees, parsers, language servers, formatters, and search tools. Deno resolves the
+dpp/ddu JSR modules during the build; its completed cache is copied into the runtime.
+Configuration, Deno modules, the pre-fetched WASM, dpp state, and plugin directories are
+made non-writable during the build. Runtime networking is disabled, and the root
+filesystem is read-only. ddu's import-map transformer receives one isolated tmpfs for
+transient generated modules; it cannot modify the frozen Deno inputs.
+
+Both plain and Nerd Font display plugins are frozen into the same image. Because glyphs
+are rendered by the terminal outside the container, font availability is declared at
+launch with `NVIM_NERD_FONT=1`; omission selects the safe plain mode. This changes only
+configuration choices and does not cross or mutate the frozen boundary.
 
 The Debian slim base image is pinned by multi-platform digest. Directly downloaded binaries
-are pinned by version and SHA-256. Plugins are pinned by `lazy-lock.json` and then baked
-into the completed image. Debian packages are captured in the completed image, but an
-arbitrarily late rebuild can still resolve newer packages from the Debian archive. The
-exported image is therefore the authoritative long-term artifact. Each build also writes
-`/opt/workbench/manifest.txt`, recording installed package versions, tool versions, and
-the actual plugin commits.
+are pinned by version and SHA-256. The dpp core is pinned in `config/nvim/dpp/core.tsv`;
+all other plugins use exact `rev` values in `config/nvim/dpp/plugins.toml`. The builder
+generates dpp state and installs those revisions before Git histories are discarded.
+Debian packages are captured in the completed image, but an arbitrarily late rebuild can
+still resolve newer packages from the Debian archive. The exported image is therefore the
+authoritative long-term artifact. Each build also writes `/opt/workbench/manifest.txt`,
+recording installed package versions, tool versions, and the actual plugin commits.
+
+The runtime exposes only `:DppInfo`. Install, update, state-rebuild, cache-deletion, and
+cleanup commands are excluded because they would mutate the frozen boundary. Those
+operations belong to the candidate image build.
 
 ## Host boundary
 
@@ -58,7 +73,10 @@ the fallback.
 
 ## State
 
-Cache and state paths use tmpfs and disappear with the container. Project edits remain
-on macOS through the bind mount. If persistent undo or ShaDa is later desired, add one
-explicit named volume for `/home/nvim/.local/state/nvim`; do not mount over config or
-plugin data.
+Cache, general state, and ddu's generated import-map modules use tmpfs and disappear with
+the container. The `shada/` child directory is the sole persistent editor-state exception:
+it uses the single `nvim-workbench-shada` Docker volume. This intentionally shares
+`v:oldfiles`, marks, registers, and search history across all projects. Since each project
+appears as `/workspace` inside its container, path collisions are accepted as part of the
+global-history model. Project edits remain on macOS through the bind mount; config,
+plugins, and Deno inputs remain read-only.

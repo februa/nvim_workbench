@@ -1,0 +1,246 @@
+# Plugin selection ledger for the Windows 11 configuration import.
+#
+# Keep the sections in this order: adopted, rejected, deferred.
+# Runtime installation is still controlled by core.tsv and plugins.toml. To
+# promote a deferred plugin, follow docs/windows11-import.md and then move its
+# entry to adopted.
+
+# 採用: frozen into the image and loaded from the build-time dpp state.
+[[adopted]]
+repo = 'Shougo/dpp.vim'
+reason = 'Core plugin manager.'
+
+[[adopted]]
+repo = 'vim-denops/denops.vim'
+reason = 'Required runtime for dpp and ddu.'
+
+[[adopted]]
+repo = 'Shougo/dpp-ext-installer'
+reason = 'Used only while assembling the image.'
+
+[[adopted]]
+repo = 'Shougo/dpp-ext-lazy'
+reason = 'Generates the frozen dpp state.'
+
+[[adopted]]
+repo = 'Shougo/dpp-ext-toml'
+reason = 'Loads the pinned TOML plugin definition.'
+
+[[adopted]]
+repo = 'Shougo/dpp-protocol-git'
+reason = 'Restores exact Git revisions during the image build.'
+
+[[adopted]]
+repo = 'Shougo/ddu.vim'
+reason = 'Core finder and filer framework.'
+
+[[adopted]]
+repo = 'Shougo/ddu-ui-ff'
+reason = 'Primary finder UI.'
+
+[[adopted]]
+repo = 'Shougo/ddu-source-file_rec'
+reason = 'Recursive file source.'
+
+[[adopted]]
+repo = 'Shougo/ddu-source-buffer'
+reason = 'Buffer source.'
+
+[[adopted]]
+repo = 'Shougo/ddu-source-file_old'
+reason = 'Recent-file source.'
+
+[[adopted]]
+repo = 'Shougo/ddu-source-line'
+reason = 'Current-buffer line source.'
+
+[[adopted]]
+repo = 'Shougo/ddu-source-rg'
+reason = 'Project text-search source backed by the baked ripgrep binary.'
+
+[[adopted]]
+repo = 'Shougo/ddu-kind-file'
+reason = 'File actions shared by finder and filer.'
+
+[[adopted]]
+repo = 'Shougo/ddu-filter-matcher_substring'
+reason = 'Simple deterministic matching without another fuzzy dependency.'
+
+[[adopted]]
+repo = 'Shougo/ddu-column-filename'
+reason = 'Default filename display when client Nerd Font support is not declared.'
+
+[[adopted]]
+repo = 'Shougo/ddu-ui-filer'
+reason = 'ddu-native file browser.'
+
+[[adopted]]
+repo = 'Shougo/ddu-source-file'
+reason = 'Filesystem source used by the filer.'
+
+[[adopted]]
+repo = 'vim-jp/vimdoc-ja'
+reason = 'Retains Japanese help.'
+
+[[adopted]]
+repo = 'j-hui/fidget.nvim'
+reason = 'Lightweight LSP progress feedback.'
+
+[[adopted]]
+repo = 'haya14busa/vim-asterisk'
+reason = 'Retains search-word behavior and mappings.'
+
+[[adopted]]
+repo = 'windwp/nvim-autopairs'
+reason = 'Small editing primitive with no external runtime.'
+
+[[adopted]]
+repo = 'lewis6991/gitsigns.nvim'
+reason = 'Editor-local diff signs; repository operations remain on the host.'
+
+[[adopted]]
+repo = 'kylechui/nvim-surround'
+reason = 'Retains structural editing behavior.'
+
+[[adopted]]
+repo = 'neovim/nvim-lspconfig'
+reason = 'Configures language servers already baked into the image.'
+
+[[adopted]]
+repo = 'nvim-treesitter/nvim-treesitter'
+reason = 'Parsers are compiled and frozen during the image build.'
+
+[[adopted]]
+repo = 'stevearc/conform.nvim'
+reason = 'Configures formatters already baked into the image.'
+
+[[adopted]]
+repo = 'masisz/wisteria.nvim'
+reason = 'Single colorscheme retained from the previous active Windows setting.'
+
+[[adopted]]
+repo = 'nvim-lualine/lualine.nvim'
+reason = 'Compact statusline with runtime-selected plain or Nerd Font display.'
+
+[[adopted]]
+repo = 'folke/which-key.nvim'
+reason = 'Displays only the key groups that exist in the current workbench.'
+
+[[adopted]]
+repo = 'MeanderingProgrammer/render-markdown.nvim'
+reason = 'Uses the already frozen Markdown parsers and selects symbols at runtime.'
+
+[[adopted]]
+repo = 'nvim-tree/nvim-web-devicons'
+reason = 'Frozen into the image; loaded only when NVIM_NERD_FONT=1 declares client font support.'
+
+[[adopted]]
+repo = 'ryota2357/ddu-column-icon_filename'
+reason = 'Frozen icon column selected at runtime; the plain filename column remains the default.'
+
+# 不採用: conflicts with the workbench boundary or is superseded.
+[[rejected]]
+repo = 'numToStr/Comment.nvim'
+reason = 'Superseded by Neovim 0.12 built-in gc operators.'
+
+[[rejected]]
+repo = 'tpope/vim-fugitive'
+reason = 'Git operations belong in the host-side Git tab.'
+
+[[rejected]]
+repo = 'mason-org/mason.nvim'
+reason = 'Runtime tool installation conflicts with the frozen image.'
+
+[[rejected]]
+repo = 'mason-org/mason-lspconfig.nvim'
+reason = 'Language servers are pinned and installed while building the image.'
+
+[[rejected]]
+repo = 'hrsh7th/nvim-cmp'
+reason = 'Superseded by Neovim 0.12 native LSP completion.'
+
+[[rejected]]
+repo = 'hrsh7th/cmp-nvim-lsp'
+reason = 'Dependency of the superseded nvim-cmp stack.'
+
+[[rejected]]
+repo = 'hrsh7th/cmp-buffer'
+reason = 'Dependency of the superseded nvim-cmp stack.'
+
+[[rejected]]
+repo = 'hrsh7th/cmp-path'
+reason = 'Dependency of the superseded nvim-cmp stack.'
+
+[[rejected]]
+repo = 'hrsh7th/cmp-vsnip'
+reason = 'Dependency of the superseded nvim-cmp stack.'
+
+[[rejected]]
+repo = 'hrsh7th/vim-vsnip'
+reason = 'Only supported the superseded nvim-cmp stack.'
+
+[[rejected]]
+repo = 'yetone/avante.nvim'
+reason = 'Runtime networking and credentials belong in the host Codex tab.'
+
+[[rejected]]
+repo = 'nvim-lua/plenary.nvim'
+reason = 'Was only needed by Avante in the imported configuration.'
+
+[[rejected]]
+repo = 'MunifTanjim/nui.nvim'
+reason = 'Was only needed by Avante in the imported configuration.'
+
+[[rejected]]
+repo = 'akinsho/toggleterm.nvim'
+reason = 'Shells and test runners belong in host-side Zellij tabs.'
+
+[[rejected]]
+repo = 'zk-org/zk-nvim'
+reason = 'Requires an external binary and notebook storage outside the narrow mount.'
+
+[[rejected]]
+repo = 'nvim-telescope/telescope.nvim'
+reason = 'Current workbench finder superseded by the adopted ddu interface.'
+origin = 'current-workbench'
+
+# 見送り: useful candidates retained here for later promotion.
+[[deferred]]
+repo = 'folke/tokyonight.nvim'
+reason = 'Visual preference; does not affect the dpp migration.'
+
+[[deferred]]
+repo = 'catppuccin/nvim'
+reason = 'Visual preference; does not affect the dpp migration.'
+
+[[deferred]]
+repo = 'haya14busa/vim-edgemotion'
+reason = 'Editing enhancement that can be assessed independently.'
+
+[[deferred]]
+repo = 'windwp/nvim-ts-autotag'
+reason = 'Defer until the frozen language set includes the relevant web parsers.'
+
+[[deferred]]
+repo = 'JoosepAlviste/nvim-ts-context-commentstring'
+reason = 'Defer until embedded-language comment behavior is required.'
+
+[[deferred]]
+repo = 'shellRaining/hlchunk.nvim'
+reason = 'Visual enhancement with no bearing on the core workflow.'
+
+[[deferred]]
+repo = 'm-demare/hlargs.nvim'
+reason = 'Visual enhancement with no bearing on the core workflow.'
+
+[[deferred]]
+repo = 'uga-rosa/ccc.nvim'
+reason = 'Specialized color editing is not part of the initial core.'
+
+[[deferred]]
+repo = 'ysmb-wtsg/in-and-out.nvim'
+reason = 'Editing enhancement that can be assessed independently.'
+
+[[deferred]]
+repo = 'nacro90/numb.nvim'
+reason = 'Navigation preview is useful but nonessential.'

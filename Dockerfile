@@ -7,6 +7,7 @@ FROM ${DEBIAN_IMAGE} AS builder
 
 ARG TARGETARCH
 ARG NEOVIM_VERSION=0.12.4
+ARG DENO_VERSION=2.8.1
 ARG TREE_SITTER_VERSION=0.26.11
 ARG LUA_LS_VERSION=3.18.2
 ARG PYRIGHT_VERSION=1.1.411
@@ -21,6 +22,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     XDG_DATA_HOME=/home/nvim/.local/share \
     XDG_STATE_HOME=/home/nvim/.local/state \
     XDG_CACHE_HOME=/home/nvim/.cache \
+    DENO_DIR=/opt/deno-cache \
     NVIM_CONTAINER=1
 
 # These packages are needed only while assembling the frozen runtime.
@@ -69,6 +71,19 @@ RUN set -eux; \
 
 RUN set -eux; \
     case "${TARGETARCH}" in \
+      amd64) archive_arch=x86_64; checksum=2d7bb6195226ac832e0bf7109a115f0af65ee69ac797a4bbde5b27a06cc242d9 ;; \
+      arm64) archive_arch=aarch64; checksum=67e9df91870fd0af700df924173e3009ea7ff6956e2c3c3bb86065d6070d0fd6 ;; \
+      *) echo "Unsupported architecture: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac; \
+    url="https://github.com/denoland/deno/releases/download/v${DENO_VERSION}/deno-${archive_arch}-unknown-linux-gnu.zip"; \
+    curl --fail --location --retry 3 --output /tmp/deno.zip "${url}"; \
+    echo "${checksum}  /tmp/deno.zip" | sha256sum --check --strict; \
+    unzip -q /tmp/deno.zip -d /usr/local/bin; \
+    chmod 0755 /usr/local/bin/deno; \
+    rm /tmp/deno.zip
+
+RUN set -eux; \
+    case "${TARGETARCH}" in \
       amd64) archive_arch=x64; checksum=ca71415dd19f19e30aaa35a4915aefca9fdb5fec31b98331cc3d77f778d539c5 ;; \
       arm64) archive_arch=arm64; checksum=273af33f26f4a1143f27c96d9f9e1188aba619c71e0807042134f66b4bd27f24 ;; \
       *) echo "Unsupported architecture: ${TARGETARCH}" >&2; exit 1 ;; \
@@ -111,28 +126,42 @@ RUN npm install --global --omit=dev "pyright@${PYRIGHT_VERSION}" \
 
 RUN mkdir -p \
         /home/nvim/.config/nvim \
-        /home/nvim/.local/share/nvim/lazy \
+        /home/nvim/.local/share/nvim/dpp/repos/github.com \
         /home/nvim/.local/state/nvim \
         /home/nvim/.cache/nvim \
+        /opt/deno-cache \
         /opt/workbench/scripts \
         /opt/workbench/tests/fixtures \
         /workspace
+
+COPY config/nvim/dpp/core.tsv /opt/workbench/dpp-core.tsv
+COPY scripts/clone-dpp-core /opt/workbench/scripts/clone-dpp-core
+
+RUN /opt/workbench/scripts/clone-dpp-core \
+        /opt/workbench/dpp-core.tsv \
+        /home/nvim/.local/share/nvim/dpp
 
 COPY config/nvim/ /home/nvim/.config/nvim/
 COPY tests/ /opt/workbench/tests/
 COPY scripts/container-smoke-test /opt/workbench/scripts/container-smoke-test
 COPY scripts/capture-manifest /opt/workbench/scripts/capture-manifest
 
-# Restore pinned plugins, compile parsers, record commits, and discard Git histories.
-RUN git clone --filter=blob:none https://github.com/folke/lazy.nvim.git /home/nvim/.local/share/nvim/lazy/lazy.nvim \
-    && git -C /home/nvim/.local/share/nvim/lazy/lazy.nvim checkout 85c7ff3711b730b4030d03144f6db6375044ae82 \
-    && NVIM_IMAGE_BUILD=1 nvim --headless "+Lazy! restore" "+qa" \
-    && NVIM_IMAGE_BUILD=1 nvim --headless "+luafile /opt/workbench/tests/install-parsers.lua" \
+# Restore pinned dpp plugins, generate the frozen state, warm the Deno cache,
+# compile parsers, record commits, and discard Git histories.
+RUN DPP_BUILD_PHASE=state nvim --headless -u NONE "+luafile /opt/workbench/tests/build-dpp.lua" \
+    && DPP_BUILD_PHASE=install nvim --headless -u NONE "+luafile /opt/workbench/tests/build-dpp.lua" \
+    && DPP_BUILD_PHASE=state nvim --headless -u NONE "+luafile /opt/workbench/tests/build-dpp.lua" \
+    && NVIM_NERD_FONT=0 nvim --headless "+luafile /opt/workbench/tests/warm-denops.lua" \
+    && NVIM_NERD_FONT=1 nvim --headless "+luafile /opt/workbench/tests/warm-denops.lua" \
+    && nvim --headless "+luafile /opt/workbench/tests/install-parsers.lua" \
     && tree-sitter --version | awk '{ print $2 }' > /opt/workbench/tree-sitter-version.txt \
-    && for plugin in /home/nvim/.local/share/nvim/lazy/*; do \
-         printf '%s\t%s\n' "$(basename "${plugin}")" "$(git -C "${plugin}" rev-parse HEAD)"; \
-       done > /opt/workbench/plugin-manifest.txt \
-    && find /home/nvim/.local/share/nvim/lazy -type d -name .git -prune -exec rm -rf {} +
+    && find /home/nvim/.local/share/nvim/dpp/repos/github.com -mindepth 2 -maxdepth 2 -type d \
+       | while IFS= read -r plugin; do \
+           relative="${plugin#/home/nvim/.local/share/nvim/dpp/repos/github.com/}"; \
+           printf '%s\t%s\n' "${relative}" "$(git -C "${plugin}" rev-parse HEAD)"; \
+         done \
+       | sort > /opt/workbench/plugin-manifest.txt \
+    && find /home/nvim/.local/share/nvim/dpp -type d -name .git -prune -exec rm -rf {} +
 
 
 FROM ${DEBIAN_IMAGE} AS runtime
@@ -145,6 +174,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     XDG_DATA_HOME=/home/nvim/.local/share \
     XDG_STATE_HOME=/home/nvim/.local/state \
     XDG_CACHE_HOME=/home/nvim/.cache \
+    DENO_DIR=/opt/deno-cache \
     NVIM_CONTAINER=1
 
 # Runtime-only OS dependencies. Build tools, curl, npm, and archive tools stay behind.
@@ -176,27 +206,36 @@ RUN set -eux; \
     mkdir -p \
         /home/nvim/.cache/nvim \
         /home/nvim/.local/state/nvim \
+        /home/nvim/.local/state/nvim/shada \
         /workspace; \
     chown -R nvim:nvim /home/nvim/.cache /home/nvim/.local/state /workspace
 
 COPY --from=builder /opt/nvim/ /opt/nvim/
 COPY --from=builder /opt/lua-language-server/ /opt/lua-language-server/
+COPY --from=builder /usr/local/bin/deno /usr/local/bin/deno
+COPY --from=builder /opt/deno-cache/ /opt/deno-cache/
 COPY --from=builder /usr/local/bin/ruff /usr/local/bin/ruff
 COPY --from=builder /usr/local/bin/stylua /usr/local/bin/stylua
 COPY --from=builder /usr/local/lib/node_modules/pyright/ /usr/local/lib/node_modules/pyright/
 COPY --from=builder /home/nvim/.config/nvim/ /home/nvim/.config/nvim/
 COPY --from=builder /home/nvim/.local/share/nvim/ /home/nvim/.local/share/nvim/
+COPY --from=builder /home/nvim/.local/share/deno-wasmbuild/ /home/nvim/.local/share/deno-wasmbuild/
 COPY --from=builder /opt/workbench/ /opt/workbench/
 
 RUN ln -s /opt/nvim/bin/nvim /usr/local/bin/nvim \
     && ln -s /opt/lua-language-server/bin/lua-language-server /usr/local/bin/lua-language-server \
     && ln -s ../lib/node_modules/pyright/index.js /usr/local/bin/pyright \
     && ln -s ../lib/node_modules/pyright/langserver.index.js /usr/local/bin/pyright-langserver \
-    && chown -R root:root /home/nvim/.config/nvim /home/nvim/.local/share/nvim \
-    && chmod -R a-w /home/nvim/.config/nvim /home/nvim/.local/share/nvim
+    && chown -R nvim:nvim /opt/deno-cache/import_map_importer \
+    && chmod -R u+rwX,go-rwx /opt/deno-cache/import_map_importer \
+    && chown -R root:root /home/nvim/.config/nvim /home/nvim/.local/share/nvim /home/nvim/.local/share/deno-wasmbuild \
+    && chmod -R a-w /home/nvim/.config/nvim /home/nvim/.local/share/nvim /home/nvim/.local/share/deno-wasmbuild
 
 USER nvim
-RUN /opt/workbench/scripts/container-smoke-test
+RUN XDG_STATE_HOME=/tmp/nvim-workbench-build-state NVIM_NERD_FONT=0 \
+      /opt/workbench/scripts/container-smoke-test \
+    && XDG_STATE_HOME=/tmp/nvim-workbench-build-state NVIM_NERD_FONT=1 \
+      /opt/workbench/scripts/container-smoke-test
 
 USER root
 RUN /opt/workbench/scripts/capture-manifest /opt/workbench/manifest.txt

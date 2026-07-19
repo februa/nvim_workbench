@@ -8,7 +8,8 @@ tests, shells, and project runtimes remain independent.
 
 - Neovim 0.12.4 (official archive + SHA-256)
 - Debian stable-slim build and runtime images (multi-platform digest)
-- lazy.nvim plugins (commit-pinned in `lazy-lock.json`)
+- Deno 2.8.1 and a pre-warmed, read-only Deno module cache
+- dpp.vim/ddu.vim plugins and generated dpp state (commit-pinned in `core.tsv` and `plugins.toml`)
 - Tree-sitter CLI 0.26.11 at build time and compiled parsers at runtime
 - Lua language server 3.18.2, Pyright 1.1.411, and clangd
 - Ruff 0.15.22, StyLua 2.5.2, ShellCheck, ripgrep, and fd
@@ -34,7 +35,7 @@ build targets.
 
 The build downloads dependencies once, verifies published checksums, restores pinned
 plugins, compiles parsers, and runs the smoke test. The second command repeats the test
-with networking disabled and a read-only root filesystem.
+in both font modes with networking disabled and a read-only root filesystem.
 
 ## Edit a macOS project
 
@@ -59,11 +60,41 @@ nvim .
 nvim src/main.py
 ```
 
+Plain symbols are the safe default. When the terminal or iPad SSH client uses a Nerd
+Font, enable the icon display for that launch:
+
+```bash
+NVIM_NERD_FONT=1 nvim .
+```
+
+The same frozen image is used in both modes. The flag switches the ddu filename column,
+lualine's rounded bubbles style, which-key, and Markdown symbols at runtime; it never downloads plugins.
+Use `NVIM_NERD_FONT=0` or omit the variable to return to plain symbols.
+
 The current directory is mounted at `/workspace`, and all arguments are forwarded to
 Neovim inside the frozen container. Absolute paths below the current directory are
 translated to `/workspace`; absolute paths outside it fail with an explanation instead of
 opening an unrelated empty buffer. Files outside the current directory are intentionally
 not exposed to the container.
+
+Running `nvim` without arguments starts with an empty buffer and `/workspace` as the
+current directory. It does not open `/workspace` as a directory buffer. Pass `.` explicitly
+when directory browsing is wanted.
+
+Neovim's ShaDa is stored in the single `nvim-workbench-shada` Docker volume. Consequently,
+ddu's `file_old` source (`sm`) retains one global recent-file history across projects,
+container removal, and image rebuilds. Because every project appears below `/workspace`,
+same relative paths in different projects may collide by design. The shared ShaDa also
+retains Neovim marks, registers, and search history, with old-file marks capped at 1000
+entries. Inspect the volume with:
+
+```bash
+docker volume inspect nvim-workbench-shada
+```
+
+This volume survives container removal and image rebuilds, but it is mutable state and is
+not included in `scripts/export.sh` image archives. Back it up separately before
+resetting Docker Desktop or moving to another Mac if the history must be retained.
 
 When launched through SSH, the wrapper passes `NVIM_NOTTYFAST=1` to Neovim. This disables
 startup terminal queries that some iPad SSH clients do not answer and avoids the harmless
@@ -119,12 +150,22 @@ Useful mappings:
 
 | Mapping | Action |
 | --- | --- |
-| `<leader>sf` | Find files |
-| `<leader>sg` | Search text |
+| `sN` | Find files from the current buffer directory |
+| `s;` / `sm` | Find buffers / buffers and recent files |
+| `s/` / `sg` | Search lines / project text |
+| `sn` | Open the ddu file browser |
 | `<leader>f` | Format buffer |
 | `gd` / `gr` | Definition / references |
 | `<leader>rn` | LSP rename |
+| `gcc` / `gc{motion}` | Toggle comments (built into Neovim) |
+| `ys` / `ds` / `cs` | Add, delete, or change surroundings |
+| `*` / `#` | Search without moving the cursor |
+| `jj` (insert mode) | Return to normal mode |
 | `"+y` | Copy through OSC 52 |
+
+`:DppInfo` reports the frozen dpp state and Denops status. Mutating commands such as
+`DppInstall`, `DppUpdate`, and `DppMakeState` are intentionally build-time-only; rebuild a
+candidate image to change plugins.
 
 Normal terminal paste is the most portable paste path. OSC 52 paste queries are enabled,
 but some terminals intentionally block them.
@@ -165,4 +206,7 @@ repositories and upstream source hosts can change or disappear even when the rec
 pinned.
 
 See [architecture](docs/architecture.md) for the trust boundary and
-[maintenance](docs/maintenance.md) for safe candidate-to-stable updates.
+[maintenance](docs/maintenance.md) for safe candidate-to-stable updates. The
+[Windows 11 import notes](docs/windows11-import.md) and the machine-readable
+`config/nvim/dpp/selection.toml` record every plugin as adopted, rejected, or deferred.
+Deferred entries stay available for a later, pinned promotion into the frozen image.

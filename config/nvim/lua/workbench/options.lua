@@ -1,7 +1,6 @@
 local opt = vim.opt
 
 opt.number = true
-opt.relativenumber = true
 opt.mouse = "a"
 opt.clipboard = "unnamedplus"
 opt.breakindent = true
@@ -19,5 +18,7 @@ opt.inccommand = "split"
 opt.cursorline = true
 opt.scrolloff = 8
 opt.termguicolors = true
+opt.helplang = { "ja", "en" }
+opt.shada = "!,'1000,<50,s10,h,r/tmp/,r/private/"
 
 vim.cmd.colorscheme("habamax")

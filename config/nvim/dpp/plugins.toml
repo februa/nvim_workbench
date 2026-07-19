@@ -1,0 +1,133 @@
+# dpp itself and its build-time extensions are cloned from core.tsv. They have
+# no rev here because dpp appends rev to the checkout path; core.tsv is their
+# immutable revision lock instead.
+[[plugins]]
+repo = 'Shougo/dpp.vim'
+
+[[plugins]]
+repo = 'vim-denops/denops.vim'
+
+[[plugins]]
+repo = 'Shougo/dpp-ext-installer'
+
+[[plugins]]
+repo = 'Shougo/dpp-ext-lazy'
+
+[[plugins]]
+repo = 'Shougo/dpp-ext-toml'
+
+[[plugins]]
+repo = 'Shougo/dpp-protocol-git'
+
+# ddu finder and filer stack.
+[[plugins]]
+repo = 'Shougo/ddu.vim'
+rev = '37c809a0088b02a1a6a898772864fe61041f3e18'
+
+[[plugins]]
+repo = 'Shougo/ddu-ui-ff'
+rev = '4c56cea31c02692bb4e6ac9252552721eaa7a566'
+
+[[plugins]]
+repo = 'Shougo/ddu-source-file_rec'
+rev = '9c5b74483888511833fcd150507df1725c71a357'
+
+[[plugins]]
+repo = 'Shougo/ddu-source-buffer'
+rev = '1c98710753160bcd6e18f71236e8f96d4cbd00a5'
+
+[[plugins]]
+repo = 'Shougo/ddu-source-file_old'
+rev = 'a79f5a6969d8a9b4608e1bfeacfdb9c0230a8746'
+
+[[plugins]]
+repo = 'Shougo/ddu-source-line'
+rev = 'b56234c5ef9e2791f6fd07c56295464902ec2599'
+
+[[plugins]]
+repo = 'Shougo/ddu-source-rg'
+rev = '76e6699d449e1b6a978c450b1a8ad76efea47bdd'
+
+[[plugins]]
+repo = 'Shougo/ddu-kind-file'
+rev = '986135895a963a756e93af4910036244a1754ff3'
+
+[[plugins]]
+repo = 'Shougo/ddu-filter-matcher_substring'
+rev = '01eae40a1aedec5093d6b20f48441acc8bc4436c'
+
+[[plugins]]
+repo = 'Shougo/ddu-column-filename'
+rev = 'be74daf08ebe715574b758e4a4ee86db33833c16'
+
+[[plugins]]
+repo = 'Shougo/ddu-ui-filer'
+rev = 'd731d99519643969db3499f9fde871e6940af31f'
+
+[[plugins]]
+repo = 'Shougo/ddu-source-file'
+rev = 'dc1f5b73bbb707bb0ab60972814822c8ab97f025'
+
+# Frozen editor functionality retained from this workbench and the Windows setup.
+[[plugins]]
+repo = 'nvim-treesitter/nvim-treesitter'
+rev = '4916d6592ede8c07973490d9322f187e07dfefac'
+
+[[plugins]]
+repo = 'neovim/nvim-lspconfig'
+rev = 'e7ca2c95ba316a8b846d3f3546d407908c5c4ccb'
+
+[[plugins]]
+repo = 'stevearc/conform.nvim'
+rev = '619363c30309d29ffa631e67c8183f2a72caa373'
+
+[[plugins]]
+repo = 'lewis6991/gitsigns.nvim'
+rev = '31d6fb2d618bca1482b9f274751ead5f03461408'
+
+[[plugins]]
+repo = 'windwp/nvim-autopairs'
+rev = '7b9923abad60b903ece7c52940e1321d39eccc79'
+
+[[plugins]]
+repo = 'kylechui/nvim-surround'
+rev = '8b47db616ef658b8fc27e61db2896aa2f40134de'
+
+[[plugins]]
+repo = 'haya14busa/vim-asterisk'
+rev = '77e97061d6691637a034258cc415d98670698459'
+
+[[plugins]]
+repo = 'j-hui/fidget.nvim'
+rev = '6f793b2bcd2d35e201c09520f698bb763220908a'
+
+[[plugins]]
+repo = 'vim-jp/vimdoc-ja'
+rev = 'ca24f39b608df1a8593f665d2ee0680ff55232e9'
+
+# Display layer selected from the deferred Windows configuration.
+[[plugins]]
+repo = 'masisz/wisteria.nvim'
+rev = 'cc5606c471511a608961e0f48a9d13b228dded7b'
+
+[[plugins]]
+repo = 'nvim-lualine/lualine.nvim'
+rev = '221ce6b2d999187044529f49da6554a92f740a96'
+
+[[plugins]]
+repo = 'folke/which-key.nvim'
+rev = '3aab2147e74890957785941f0c1ad87d0a44c15a'
+
+[[plugins]]
+repo = 'MeanderingProgrammer/render-markdown.nvim'
+rev = 'f422cb5c6855f150e2ddcfaf44e7157b98b34f6a'
+
+# Icon support is always frozen into the image, but activated only when the
+# client declares Nerd Font support with NVIM_NERD_FONT=1.
+[[plugins]]
+repo = 'nvim-tree/nvim-web-devicons'
+rev = '0ca28b61a04fe7426cefbdd52c2647ef0e335b5f'
+
+[[plugins]]
+repo = 'ryota2357/ddu-column-icon_filename'
+rev = '8c5e17e7eef61146f6ec51980b2afbae0c60116c'
